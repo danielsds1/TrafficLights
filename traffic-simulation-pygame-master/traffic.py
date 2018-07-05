@@ -1,6 +1,7 @@
 import pygame
 import sys
-import math
+import math as mt
+import datetime
 from pygame import *
 from pygame.locals import *
 from pygame.sprite import *
@@ -46,10 +47,10 @@ class Cars(Sprite):
             self.rect.left=xp #move the car
             self.x=xp #update the car position
         elif sgn == 2:
-            if self.x>500:
+            if self.x>WIDTH/2-STREET*5/4:
                 self.rect.left=xp
                 self.x=xp
-            elif self.x>=500 and self.x<=550:
+            elif self.x>=WIDTH/2-STREET*5/4 and self.x<=550:
                 pass
             elif dista>-20 and dista<20: #to check nearby cars
                 pass
@@ -75,8 +76,11 @@ class Signal(Sprite):
 class Watch(Sprite):
     def __init__(self,x,y):
         Sprite.__init__(self)
-        self.image=image.load('img/9.png')
+        self.image=image.load('img/off.png')
         self.rect=self.image.get_rect(center=(x,y))
+    def change_num(self,num):
+        self.image=image.load('img/'+str(num)+'.png')
+
 
 class Button(Sprite):
     def __init__(self,button,x,y):
@@ -144,26 +148,26 @@ def drawBackground(frame,HEIGHT,WIDTH,STREET,STRIPE):
     pygame.draw.rect(frame,(0,0,0), (SIGNAL_POS[1][0]-10,SIGNAL_POS[1][1]-25,20,20),0)
     pygame.draw.rect(frame,(0,0,0), (SIGNAL_POS[2][0]-25,SIGNAL_POS[2][1]-10,20,20),0)
     pygame.draw.rect(frame,(0,0,0), (SIGNAL_POS[3][0]+5,SIGNAL_POS[3][1]-10,20,20),0)
-'''
-def button(button0,btnum,):
-    mouse=pygame.mouse.get_pos()
-    click=pygame.mouse.get_pressed()
-    
-    pass
-'''
+
 def traffic():
 
     clock = pygame.time.Clock() # load clock
+    #datetime.date.timetuple(datetime.datetime.now())
+    #time.struct_time(tm_year=2018, tm_mon=7, tm_mday=4, tm_hour=0, tm_min=0, tm_sec=0, tm_wday=2, tm_yday=185, tm_isdst=-1)
+    start=datetime.date.timetuple(datetime.datetime.now())
+    
+    
     frame = pygame.display.set_mode((WIDTH, HEIGHT))
     display.set_caption(CAPTION)
+    
     watch01=Watch(SIGNAL_POS[0][0]-5,SIGNAL_POS[0][1]+15)
     watch02=Watch(SIGNAL_POS[0][0]+5,SIGNAL_POS[0][1]+15)
 
-    watch11=Watch(SIGNAL_POS[1][0]+5,SIGNAL_POS[1][1]-15)
-    watch12=Watch(SIGNAL_POS[1][0]-5,SIGNAL_POS[1][1]-15)
+    watch11=Watch(SIGNAL_POS[1][0]-5,SIGNAL_POS[1][1]-15)
+    watch12=Watch(SIGNAL_POS[1][0]+5,SIGNAL_POS[1][1]-15)
 
-    watch21=Watch(SIGNAL_POS[2][0]-10,SIGNAL_POS[2][1])
-    watch22=Watch(SIGNAL_POS[2][0]-20,SIGNAL_POS[2][1])
+    watch21=Watch(SIGNAL_POS[2][0]-20,SIGNAL_POS[2][1])
+    watch22=Watch(SIGNAL_POS[2][0]-10,SIGNAL_POS[2][1])
 
     watch31=Watch(SIGNAL_POS[3][0]+10,SIGNAL_POS[3][1])
     watch32=Watch(SIGNAL_POS[3][0]+20,SIGNAL_POS[3][1])
@@ -194,16 +198,85 @@ def traffic():
 
     signal_counter=0
     cont=0
-       
+    green_time=10
+    yellow_time=3
+    red_time=10
+    total_time=green_time+red_time+yellow_time
+
     while True:
         
+        now=datetime.datetime.timetuple(datetime.datetime.now())
+        seconds=(now.tm_hour*3600 + now.tm_min*60 + now.tm_sec)-(start.tm_hour*3600 + start.tm_min*60 + start.tm_sec)
+        rtime=seconds%total_time
+        #flaggreen=0
+
+        if rtime==0:
+            signal_counter=0
+            signal0.change_sign(signal_list[0][0])
+            signal1.change_sign(signal_list[1][0])
+            signal2.change_sign(signal_list[2][2])
+            signal3.change_sign(signal_list[3][2])
+        elif rtime==green_time:
+            signal_counter=1
+            signal0.change_sign(signal_list[0][1])
+            signal1.change_sign(signal_list[1][1])
+        elif rtime==green_time+yellow_time:
+            signal_counter=2
+            signal0.change_sign(signal_list[0][2])
+            signal1.change_sign(signal_list[1][2])
+            signal2.change_sign(signal_list[2][0])
+            signal3.change_sign(signal_list[3][0])
+        elif rtime==green_time+red_time:
+            signal_counter=2
+            signal2.change_sign(signal_list[2][1])
+            signal3.change_sign(signal_list[3][1])
+
+        if rtime<green_time:
+            if cont!=rtime:
+                watch01.change_num(mt.floor((green_time-rtime)/10))
+                watch02.change_num(mt.floor((green_time-rtime)%10))
+                watch11.change_num(mt.floor((green_time-rtime)/10))
+                watch12.change_num(mt.floor((green_time-rtime)%10))
+                watch21.change_num('off')
+                watch22.change_num('off')
+                watch31.change_num('off')
+                watch32.change_num('off')
+            else:
+                cont=rtime
+
+        elif rtime<green_time+yellow_time:
+
+            if cont!=rtime:
+                watch01.change_num('off')
+                watch02.change_num('off')
+                watch11.change_num('off')
+                watch12.change_num('off')
+            else:
+                cont=rtime
+        elif rtime<green_time+red_time:
+            if cont!=rtime:
+                
+                watch01.change_num('off')
+                watch02.change_num('off')
+                watch11.change_num('off')
+                watch12.change_num('off')
+                watch21.change_num(mt.floor((green_time+red_time-rtime)/10))
+                watch22.change_num(mt.floor((green_time+red_time-rtime)%10))
+                watch31.change_num(mt.floor((green_time+red_time-rtime)/10))
+                watch32.change_num(mt.floor((green_time+red_time-rtime)%10))
+            else:
+                cont=rtime
+        else:
+            watch21.change_num('off')
+            watch22.change_num('off')
+            watch31.change_num('off')
+            watch32.change_num('off')
         mouse_pos=mouse.get_pos()
         click=mouse.get_pressed()
-        #print(click[0])
+
         xp = 10
         
         drawBackground(frame,HEIGHT,WIDTH,STREET,STRIPE)
-
         car1.move(xp,signal_counter,car2)
         car2.move(xp,signal_counter,car3)
         car3.move(xp,signal_counter,car4)
@@ -211,16 +284,20 @@ def traffic():
         
         
         e=event.pump()
-        if click[2]==1:
-            break
+
         if click[0]==1:
             signal_counter+=1
             if signal_counter>2:
                 signal_counter=0 
-            signal0.change_sign(signal_list[0][signal_counter])
+            
             signal1.change_sign(signal_list[1][signal_counter])
-            signal2.change_sign(signal_list[2][2-signal_counter])
-            signal3.change_sign(signal_list[3][2-signal_counter])
+
+            if signal_counter<2:
+                signal2.change_sign(signal_list[2][2])
+                signal3.change_sign(signal_list[3][2])
+            else:
+                signal2.change_sign(signal_list[2][0])
+                signal3.change_sign(signal_list[3][0])
 
         if BTN_POS[0][0]+18>mouse_pos[0]>BTN_POS[0][0]-18 and BTN_POS[0][1]+18>mouse_pos[1]>BTN_POS[0][1]-18:
             button0.hover('stoph')
@@ -254,16 +331,12 @@ def traffic():
                     pygame.display.flip()      
         else:
             button1.hover('pause')
-        
-        
-  
         all_cars.draw(frame)
         all_signals.draw(frame)
         all_watches.draw(frame)
         all_buttons.draw(frame)
         display.update()
         pygame.display.flip()
-        
     pygame.quit()
     quit()
     clock = pygame.time.Clock() # load clock
