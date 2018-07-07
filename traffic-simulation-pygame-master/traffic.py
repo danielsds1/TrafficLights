@@ -1,40 +1,88 @@
 import pygame
 import sys
 import math as mt
+import numpy as np
 import datetime
 from pygame import *
 from pygame.locals import *
 from pygame.sprite import *
 
-
-
 #initialize pygame
 pygame.init()
 
+BLACK=(0,0,0)
+WHITE=(255,255,255)
+YELLOW=(255,255,0)
+BGCOLOR=(128,128,128)
 
 STREET=120
 STRIPE=6
-WIDTH=1280
-HEIGHT=720
+WIDTH=int(1280/2)
+HEIGHT=int(720*2/3)
+
+OCPMAP=[[0 for col in range(WIDTH)] for row in range(HEIGHT)]
+
 CAPTION = 'Traffic Simulation'
 SPEED=0
+STREET_POS=[(0,(HEIGHT-STREET)/2,WIDTH,STREET),
+            ((WIDTH-STREET)/2,0,STREET,HEIGHT)]
+
 SIGNAL_POS=[[WIDTH/2-STREET/2-20,HEIGHT/2+STREET/2+5],
-[WIDTH/2+STREET/2+20,HEIGHT/2-STREET/2-5],
-[WIDTH/2-STREET/2-5,HEIGHT/2-STREET/2-20],
-[WIDTH/2+STREET/2+5,HEIGHT/2+STREET/2+20]]
+            [WIDTH/2+STREET/2+20,HEIGHT/2-STREET/2-5],
+            [WIDTH/2-STREET/2-5,HEIGHT/2-STREET/2-20],
+            [WIDTH/2+STREET/2+5,HEIGHT/2+STREET/2+20]]
+
+STOP_LANE=[(WIDTH/2+STREET*5/4,HEIGHT/2-STREET/2,STRIPE,STREET),
+           (WIDTH/2-STREET*5/4,HEIGHT/2-STREET/2,STRIPE,STREET),
+           (WIDTH/2-STREET/2,HEIGHT/2+STREET+30,STREET,STRIPE),
+           (WIDTH/2-STREET/2,HEIGHT/2-STREET-30,STREET,STRIPE)]
+
+DOUBLE_LANE=[(0,HEIGHT/2-2,WIDTH/2-STREET*5/4,STRIPE/3),
+             (0,HEIGHT/2+2,WIDTH/2-STREET*5/4,STRIPE/3),
+             (WIDTH/2+STREET*5/4,HEIGHT/2-2,WIDTH/2-STREET*3/4,STRIPE/3),
+             (WIDTH/2+STREET*5/4,HEIGHT/2+2,WIDTH/2-STREET*3/4,STRIPE/3),
+             (WIDTH/2-2,0,STRIPE/3,HEIGHT/2-STREET*5/4),
+             (WIDTH/2+2,0,STRIPE/3,HEIGHT/2-STREET*5/4),
+             (WIDTH/2-STRIPE/3,HEIGHT/2+STREET+STREET/4,STRIPE/3,HEIGHT/2-STREET*3/4),
+             (WIDTH/2+STRIPE/3,HEIGHT/2+STREET+STREET/4,STRIPE/3,HEIGHT/2-STREET*3/4)]
+
+DASHED_LANE=[(0,HEIGHT/2-STREET/4,STRIPE*2,STRIPE/3),
+             (0,HEIGHT/2+STREET/4,STRIPE*2,STRIPE/3),
+             (WIDTH/2+STREET*5/4,HEIGHT/2-STREET/4,STRIPE*2,STRIPE/3),
+             (WIDTH/2+STREET*5/4,HEIGHT/2+STREET/4,STRIPE*2,STRIPE/3),
+             (WIDTH/2-STREET/4,0,STRIPE/3,STRIPE*2),
+             (WIDTH/2+STREET/4,0,STRIPE/3,STRIPE*2),
+             (WIDTH/2-STREET/4,HEIGHT/2+STREET*5/4,STRIPE/3,STRIPE*2),
+             (WIDTH/2+STREET/4,HEIGHT/2+STREET*5/4,STRIPE/3,STRIPE*2)]
+
+CROSSWALK=[(WIDTH/2-STREET,(HEIGHT-STREET)/2,STREET/2,STRIPE),
+           ((WIDTH+STREET)/2,(HEIGHT-STREET)/2,STREET/2,STRIPE),
+           ((WIDTH-STREET)/2,HEIGHT/2-STREET,STRIPE,STREET/2),
+           ((WIDTH-STREET)/2,(HEIGHT+STREET)/2,STRIPE,STREET/2)]
+
+COUNT_POS=[(SIGNAL_POS[0][0]-10,SIGNAL_POS[0][1]+5,20,20),
+           (SIGNAL_POS[1][0]-10,SIGNAL_POS[1][1]-25,20,20),
+           (SIGNAL_POS[2][0]-25,SIGNAL_POS[2][1]-10,20,20),
+           (SIGNAL_POS[3][0]+5,SIGNAL_POS[3][1]-10,20,20)
+        ]
+
+CAR=[40,20]
 MAX_SPEED=30
 BTN_POS=[[20,20],[61,20],[102,20]]
 velocity=[10,10]
 
 #make a class of cars
 class Cars(Sprite):
-    def __init__(self,x,y):
+    
+    def __init__(self,x,y,d):
+        self.speed=5
         Sprite.__init__(self)
-        self.image=image.load('img/lcar.png')
+        self.image=image.load('img/'+d+'car.png')
         self.x=int(x) #variable denoting x position of car
         self.y=int(y) # y position of car
         self.rect=self.image.get_rect(center = (x,y)) #used to place the car
-
+    
+    #car1.move(xp,signal_counter,car2)
     def move(self,xp,sgn,a):
         
         xp=self.x+xp #new place for the car
@@ -42,7 +90,7 @@ class Cars(Sprite):
         if xp>1200:
             xp = xp - 1200
         dista=xp-a.x
-       
+        
         if sgn == 0 or sgn == 1:
             self.rect.left=xp #move the car
             self.x=xp #update the car position
@@ -61,18 +109,17 @@ class Cars(Sprite):
 class Signal(Sprite):
     def __init__(self,x,y,direction):
         Sprite.__init__(self)
-        if direction=='l':
-            self.image=image.load('img/lgreen.png')
-        elif direction=='r':
-            self.image=image.load('img/rgreen.png')
-        elif direction=='u':
-            self.image=image.load('img/ured.png')
-        elif direction=='d':
-            self.image=image.load('img/dred.png')
+        self.direction=direction
+        self.image=image.load('img/'+direction+'red.png')
         self.rect=self.image.get_rect(center=(x,y))
-    def change_sign(self,color):
-            self.image=image.load(color)
 
+    def change_sign(self,color):
+            self.image=image.load('img/'+self.direction+color+'.png')
+            '''if color=='red':
+                if direction=='l':
+                    for i in street/2:
+                        OCPMAP[][]= 1'''
+                    
 class Watch(Sprite):
     def __init__(self,x,y):
         Sprite.__init__(self)
@@ -92,65 +139,64 @@ class Button(Sprite):
 
         
 def drawBackground(frame,HEIGHT,WIDTH,STREET,STRIPE):
-    frame.fill((128,128,128))
+    frame.fill(BGCOLOR)
         
     #pygame.draw.rect(screen, color, (x,y,width,height), thickness)
     
     #Desenho das ruas
-    pygame.draw.rect(frame,(0,0,0), (0,(HEIGHT-STREET)/2,WIDTH,STREET),0) 
-    pygame.draw.rect(frame,(0,0,0), ((WIDTH-STREET)/2,0,STREET,HEIGHT),0)
+    pygame.draw.rect(frame,BLACK,STREET_POS[0],0) 
+    pygame.draw.rect(frame,BLACK,STREET_POS[1],0)
     
     #Desenho das faixas dupla contínuas na rua horizontal 
-    pygame.draw.rect(frame,(255,255,0), (0,HEIGHT/2-2,WIDTH/2-STREET*5/4,STRIPE/3),0) #desenho da faixa contínua
-    pygame.draw.rect(frame,(255,255,0), (0,HEIGHT/2+2,WIDTH/2-STREET*5/4,STRIPE/3),0) #desenho da faixa contínua
-    pygame.draw.rect(frame,(255,255,0), (WIDTH/2+STREET*5/4,HEIGHT/2-2,WIDTH/2-STREET*3/4,STRIPE/3),0)
-    pygame.draw.rect(frame,(255,255,0), (WIDTH/2+STREET*5/4,HEIGHT/2+2,WIDTH/2-STREET*3/4,STRIPE/3),0)
-    
-    #Desenho das faixas de retenção na rua horizontal
-    pygame.draw.rect(frame,(255,255,255), (WIDTH/2+STREET*5/4,HEIGHT/2-STREET/2,STRIPE,STREET),0)
-    pygame.draw.rect(frame,(255,255,255), (WIDTH/2-STREET*5/4,HEIGHT/2-STREET/2,STRIPE,STREET),0)
-    
+    pygame.draw.rect(frame,YELLOW, DOUBLE_LANE[0],0) #desenho da faixa contínua
+    pygame.draw.rect(frame,YELLOW, DOUBLE_LANE[1],0) #desenho da faixa contínua
+    pygame.draw.rect(frame,YELLOW, DOUBLE_LANE[2],0)
+    pygame.draw.rect(frame,YELLOW, DOUBLE_LANE[3],0)
     #Desenho das faixas dupla contínuas na rua vertical
-    pygame.draw.rect(frame,(255,255,0), (WIDTH/2-2,0,STRIPE/3,HEIGHT/2-STREET*5/4),0)
-    pygame.draw.rect(frame,(255,255,0), (WIDTH/2+2,0,STRIPE/3,HEIGHT/2-STREET*5/4),0)
-    pygame.draw.rect(frame,(255,255,0), (WIDTH/2-STRIPE/3,HEIGHT/2+STREET+STREET/4,STRIPE/3,HEIGHT/2-STREET*3/4),0)
-    pygame.draw.rect(frame,(255,255,0), (WIDTH/2+STRIPE/3,HEIGHT/2+STREET+STREET/4,STRIPE/3,HEIGHT/2-STREET*3/4),0)
+    pygame.draw.rect(frame,YELLOW, DOUBLE_LANE[4],0)
+    pygame.draw.rect(frame,YELLOW, DOUBLE_LANE[5],0)
+    pygame.draw.rect(frame,YELLOW, DOUBLE_LANE[6],0)
+    pygame.draw.rect(frame,YELLOW, DOUBLE_LANE[7],0)
     
     #Desenho das faixas de retenção na rua horizontal
-    pygame.draw.rect(frame,(255,255,255), (WIDTH/2-STREET/2,HEIGHT/2+STREET+30,STREET,STRIPE),0)
-    pygame.draw.rect(frame,(255,255,255), (WIDTH/2-STREET/2,HEIGHT/2-STREET-30,STREET,STRIPE),0)
+    pygame.draw.rect(frame,WHITE, STOP_LANE[0],0)
+    pygame.draw.rect(frame,WHITE, STOP_LANE[1],0)
+    #Desenho das faixas de retenção na rua horizontal
+    pygame.draw.rect(frame,WHITE, STOP_LANE[2],0)
+    pygame.draw.rect(frame,WHITE, STOP_LANE[3],0)
     
     #Desenho das faixas tracejadas
     for i in range(int((WIDTH/2-STREET)//(STRIPE*4))-1):
-        pygame.draw.rect(frame,(255,255,255), (i*4*STRIPE,HEIGHT/2-STREET/4,STRIPE*2,STRIPE/3),0)
-        pygame.draw.rect(frame,(255,255,255), (i*4*STRIPE,HEIGHT/2+STREET/4,STRIPE*2,STRIPE/3),0)
-        
-        pygame.draw.rect(frame,(255,255,255), (i*4*STRIPE+WIDTH/2+STREET*5/4,HEIGHT/2-STREET/4,STRIPE*2,STRIPE/3),0)
-        pygame.draw.rect(frame,(255,255,255), (i*4*STRIPE+WIDTH/2+STREET*5/4,HEIGHT/2+STREET/4,STRIPE*2,STRIPE/3),0)
+        pygame.draw.rect(frame,WHITE, tuple(map(sum, zip(DASHED_LANE[0], (i*4*STRIPE,0,0,0)))),0)
+        pygame.draw.rect(frame,WHITE, tuple(map(sum, zip(DASHED_LANE[1], (i*4*STRIPE,0,0,0)))),0)
+        pygame.draw.rect(frame,WHITE, tuple(map(sum, zip(DASHED_LANE[2], (i*4*STRIPE,0,0,0)))),0)
+        pygame.draw.rect(frame,WHITE, tuple(map(sum, zip(DASHED_LANE[3], (i*4*STRIPE,0,0,0)))),0)
     
     for i in range(int((HEIGHT/2-STREET)//(STRIPE*4))-1):
-        pygame.draw.rect(frame,(255,255,255), (WIDTH/2-STREET/4,i*4*STRIPE,STRIPE/3,STRIPE*2),0)
-        pygame.draw.rect(frame,(255,255,255), (WIDTH/2+STREET/4,i*4*STRIPE,STRIPE/3,STRIPE*2),0)
         
-        pygame.draw.rect(frame,(255,255,255), (WIDTH/2-STREET/4,i*4*STRIPE+HEIGHT/2+STREET*5/4,STRIPE/3,STRIPE*2),0)
-        pygame.draw.rect(frame,(255,255,255), (WIDTH/2+STREET/4,i*4*STRIPE+HEIGHT/2+STREET*5/4,STRIPE/3,STRIPE*2),0)    
+        pygame.draw.rect(frame,WHITE, tuple(map(sum, zip(DASHED_LANE[4], (0,i*4*STRIPE,0,0)))),0)
+        pygame.draw.rect(frame,WHITE, tuple(map(sum, zip(DASHED_LANE[5], (0,i*4*STRIPE,0,0)))),0)
+        
+        pygame.draw.rect(frame,WHITE, tuple(map(sum, zip(DASHED_LANE[6], (0,i*4*STRIPE,0,0)))),0)
+        pygame.draw.rect(frame,WHITE, tuple(map(sum, zip(DASHED_LANE[7], (0,i*4*STRIPE,0,0)))),0)    
     
     #Desenho das faixas de pedestres         
     for i in range(10):
-        pygame.draw.rect(frame,(255,255,255), (WIDTH/2-STREET,(HEIGHT-STREET)/2+i*STREET/10,STREET/2,STRIPE),0)
-        pygame.draw.rect(frame,(255,255,255), ((WIDTH+STREET)/2,(HEIGHT-STREET)/2+i*STREET/10,STREET/2,STRIPE),0)
+        pygame.draw.rect(frame,WHITE, tuple(map(sum, zip(CROSSWALK[0], (0,i*STREET/10,0,0)))),0)
+        pygame.draw.rect(frame,WHITE, tuple(map(sum, zip(CROSSWALK[1], (0,i*STREET/10,0,0)))),0) 
         
-        pygame.draw.rect(frame,(255,255,255), ((WIDTH-STREET)/2+i*STREET/10,HEIGHT/2-STREET,STRIPE,STREET/2),0)            
-        pygame.draw.rect(frame,(255,255,255), ((WIDTH-STREET)/2+i*STREET/10,(HEIGHT+STREET)/2,STRIPE,STREET/2),0)
+        pygame.draw.rect(frame,WHITE, tuple(map(sum, zip(CROSSWALK[2], (i*STREET/10,0,0,0)))),0)            
+        pygame.draw.rect(frame,WHITE, tuple(map(sum, zip(CROSSWALK[3], (i*STREET/10,0,0,0)))),0)
+    
     #Desenho do background do contador
 
-    pygame.draw.rect(frame,(0,0,0), (SIGNAL_POS[0][0]-10,SIGNAL_POS[0][1]+5,20,20),0)
-    pygame.draw.rect(frame,(0,0,0), (SIGNAL_POS[1][0]-10,SIGNAL_POS[1][1]-25,20,20),0)
-    pygame.draw.rect(frame,(0,0,0), (SIGNAL_POS[2][0]-25,SIGNAL_POS[2][1]-10,20,20),0)
-    pygame.draw.rect(frame,(0,0,0), (SIGNAL_POS[3][0]+5,SIGNAL_POS[3][1]-10,20,20),0)
+    pygame.draw.rect(frame,BLACK, COUNT_POS[0],0)
+    pygame.draw.rect(frame,BLACK, COUNT_POS[1],0)
+    pygame.draw.rect(frame,BLACK, COUNT_POS[2],0)
+    pygame.draw.rect(frame,BLACK, COUNT_POS[3],0)
 
 def traffic():
-
+    
     clock = pygame.time.Clock() # load clock
     #datetime.date.timetuple(datetime.datetime.now())
     #time.struct_time(tm_year=2018, tm_mon=7, tm_mday=4, tm_hour=0, tm_min=0, tm_sec=0, tm_wday=2, tm_yday=185, tm_isdst=-1)
@@ -160,41 +206,40 @@ def traffic():
     frame = pygame.display.set_mode((WIDTH, HEIGHT))
     display.set_caption(CAPTION)
     
-    watch01=Watch(SIGNAL_POS[0][0]-5,SIGNAL_POS[0][1]+15)
-    watch02=Watch(SIGNAL_POS[0][0]+5,SIGNAL_POS[0][1]+15)
+    lrwatch=Watch(SIGNAL_POS[0][0]-5,SIGNAL_POS[0][1]+15)
+    luwatch=Watch(SIGNAL_POS[0][0]+5,SIGNAL_POS[0][1]+15)
 
-    watch11=Watch(SIGNAL_POS[1][0]-5,SIGNAL_POS[1][1]-15)
-    watch12=Watch(SIGNAL_POS[1][0]+5,SIGNAL_POS[1][1]-15)
+    rwatch1=Watch(SIGNAL_POS[1][0]-5,SIGNAL_POS[1][1]-15)
+    ruwatch=Watch(SIGNAL_POS[1][0]+5,SIGNAL_POS[1][1]-15)
 
-    watch21=Watch(SIGNAL_POS[2][0]-20,SIGNAL_POS[2][1])
-    watch22=Watch(SIGNAL_POS[2][0]-10,SIGNAL_POS[2][1])
+    uwatch1=Watch(SIGNAL_POS[2][0]-20,SIGNAL_POS[2][1])
+    uwatch2=Watch(SIGNAL_POS[2][0]-10,SIGNAL_POS[2][1])
 
-    watch31=Watch(SIGNAL_POS[3][0]+10,SIGNAL_POS[3][1])
-    watch32=Watch(SIGNAL_POS[3][0]+20,SIGNAL_POS[3][1])
+    dwatch1=Watch(SIGNAL_POS[3][0]+10,SIGNAL_POS[3][1])
+    dwatch2=Watch(SIGNAL_POS[3][0]+20,SIGNAL_POS[3][1])
 
-    xp=10; 
-    car1=Cars(xp+0,HEIGHT/2+5*STRIPE/2)
-    car2=Cars(xp+50,HEIGHT/2+15*STRIPE/2)
-    car3=Cars(xp+100,HEIGHT/2+5*STRIPE/2)
-    car4=Cars(xp+150,HEIGHT/2+15*STRIPE/2)
+    xp=10
     
-    signal0=Signal(SIGNAL_POS[0][0],SIGNAL_POS[0][1],'l')
-    signal1=Signal(SIGNAL_POS[1][0],SIGNAL_POS[1][1],'r')
-    signal2=Signal(SIGNAL_POS[2][0],SIGNAL_POS[2][1],'u')
-    signal3=Signal(SIGNAL_POS[3][0],SIGNAL_POS[3][1],'d')
+    car1=Cars(xp+0,HEIGHT/2+5*STRIPE/2,'l')
+    car2=Cars(xp+50,HEIGHT/2+15*STRIPE/2,'l')
+    car3=Cars(xp+100,HEIGHT/2+5*STRIPE/2,'l')
+    car4=Cars(xp+150,HEIGHT/2+15*STRIPE/2,'l')
+    
+    lsignal=Signal(SIGNAL_POS[0][0],SIGNAL_POS[0][1],'l')
+    lsignal.change_sign('green')
+    rsignal=Signal(SIGNAL_POS[1][0],SIGNAL_POS[1][1],'r')
+    rsignal.change_sign('green')
+    usignal=Signal(SIGNAL_POS[2][0],SIGNAL_POS[2][1],'u')
+    dsignal=Signal(SIGNAL_POS[3][0],SIGNAL_POS[3][1],'d')
     
     button0=Button('stop',BTN_POS[0][0],BTN_POS[0][1])
     button1=Button('pause',BTN_POS[1][0],BTN_POS[1][1])
     button2=Button('play',BTN_POS[2][0],BTN_POS[2][1])
     
     all_cars=Group(car1,car2,car3,car4)
-    all_signals=Group(signal0,signal1,signal2,signal3)
-    all_watches=Group(watch01,watch02,watch11,watch12,watch21,watch22,watch31,watch32)
+    all_signals=Group(lsignal,rsignal,usignal,dsignal)
+    all_watches=Group(lrwatch,luwatch,rwatch1,ruwatch,uwatch1,uwatch2,dwatch1,dwatch2)
     all_buttons=Group(button0,button1,button2)
-    signal_list=[['img/lgreen.png','img/lyellow.png','img/lred.png'],
-    ['img/rgreen.png','img/ryellow.png','img/rred.png'],
-    ['img/ugreen.png','img/uyellow.png','img/ured.png'],
-    ['img/dgreen.png','img/dyellow.png','img/dred.png']]
 
     signal_counter=0
     cont=0
@@ -212,112 +257,108 @@ def traffic():
 
         if rtime==0:
             signal_counter=0
-            signal0.change_sign(signal_list[0][0])
-            signal1.change_sign(signal_list[1][0])
-            signal2.change_sign(signal_list[2][2])
-            signal3.change_sign(signal_list[3][2])
+            lsignal.change_sign('green')
+            rsignal.change_sign('green')
+            usignal.change_sign('red')
+            dsignal.change_sign('red')
         elif rtime==green_time:
             signal_counter=1
-            signal0.change_sign(signal_list[0][1])
-            signal1.change_sign(signal_list[1][1])
+            lsignal.change_sign('yellow')
+            rsignal.change_sign('yellow')
         elif rtime==green_time+yellow_time:
             signal_counter=2
-            signal0.change_sign(signal_list[0][2])
-            signal1.change_sign(signal_list[1][2])
-            signal2.change_sign(signal_list[2][0])
-            signal3.change_sign(signal_list[3][0])
+            lsignal.change_sign('red')
+            rsignal.change_sign('red')
+            usignal.change_sign('green')
+            dsignal.change_sign('green')
         elif rtime==green_time+red_time:
             signal_counter=2
-            signal2.change_sign(signal_list[2][1])
-            signal3.change_sign(signal_list[3][1])
+            usignal.change_sign('yellow')
+            dsignal.change_sign('yellow')
 
         if rtime<green_time:
             if cont!=rtime:
-                watch01.change_num(mt.floor((green_time-rtime)/10))
-                watch02.change_num(mt.floor((green_time-rtime)%10))
-                watch11.change_num(mt.floor((green_time-rtime)/10))
-                watch12.change_num(mt.floor((green_time-rtime)%10))
-                watch21.change_num('off')
-                watch22.change_num('off')
-                watch31.change_num('off')
-                watch32.change_num('off')
+                lrwatch.change_num(mt.floor((green_time-rtime)/10))
+                luwatch.change_num(mt.floor((green_time-rtime)%10))
+                rwatch1.change_num(mt.floor((green_time-rtime)/10))
+                ruwatch.change_num(mt.floor((green_time-rtime)%10))
+                uwatch1.change_num('off')
+                uwatch2.change_num('off')
+                dwatch1.change_num('off')
+                dwatch2.change_num('off')
             else:
                 cont=rtime
 
         elif rtime<green_time+yellow_time:
 
             if cont!=rtime:
-                watch01.change_num('off')
-                watch02.change_num('off')
-                watch11.change_num('off')
-                watch12.change_num('off')
+                lrwatch.change_num('off')
+                luwatch.change_num('off')
+                rwatch1.change_num('off')
+                ruwatch.change_num('off')
             else:
                 cont=rtime
         elif rtime<green_time+red_time:
             if cont!=rtime:
                 
-                watch01.change_num('off')
-                watch02.change_num('off')
-                watch11.change_num('off')
-                watch12.change_num('off')
-                watch21.change_num(mt.floor((green_time+red_time-rtime)/10))
-                watch22.change_num(mt.floor((green_time+red_time-rtime)%10))
-                watch31.change_num(mt.floor((green_time+red_time-rtime)/10))
-                watch32.change_num(mt.floor((green_time+red_time-rtime)%10))
+                lrwatch.change_num('off')
+                luwatch.change_num('off')
+                rwatch1.change_num('off')
+                ruwatch.change_num('off')
+                uwatch1.change_num(mt.floor((green_time+red_time-rtime)/10))
+                uwatch2.change_num(mt.floor((green_time+red_time-rtime)%10))
+                dwatch1.change_num(mt.floor((green_time+red_time-rtime)/10))
+                dwatch2.change_num(mt.floor((green_time+red_time-rtime)%10))
             else:
                 cont=rtime
         else:
-            watch21.change_num('off')
-            watch22.change_num('off')
-            watch31.change_num('off')
-            watch32.change_num('off')
+            uwatch1.change_num('off')
+            uwatch2.change_num('off')
+            dwatch1.change_num('off')
+            dwatch2.change_num('off')
         mouse_pos=mouse.get_pos()
         click=mouse.get_pressed()
 
         xp = 10
         
         drawBackground(frame,HEIGHT,WIDTH,STREET,STRIPE)
+        #print(frame.get_at((int(WIDTH/2),int(HEIGHT/2))))
         car1.move(xp,signal_counter,car2)
         car2.move(xp,signal_counter,car3)
         car3.move(xp,signal_counter,car4)
         car4.move(xp,signal_counter,car1)
         
         
-        e=event.pump()
-
-        if click[0]==1:
-            signal_counter+=1
-            if signal_counter>2:
-                signal_counter=0 
-            
-            signal1.change_sign(signal_list[1][signal_counter])
-
-            if signal_counter<2:
-                signal2.change_sign(signal_list[2][2])
-                signal3.change_sign(signal_list[3][2])
-            else:
-                signal2.change_sign(signal_list[2][0])
-                signal3.change_sign(signal_list[3][0])
-
+        e=event.pump()#Don't ever remove this for Odin's sake!
+        
+        #Stop execution
         if BTN_POS[0][0]+18>mouse_pos[0]>BTN_POS[0][0]-18 and BTN_POS[0][1]+18>mouse_pos[1]>BTN_POS[0][1]-18:
             button0.hover('stoph')
             if click[0]==1:
                 break
         else:
             button0.hover('stop')
-        
+        #Pause execution
         if BTN_POS[1][0]+18>mouse_pos[0]>BTN_POS[1][0]-18 and BTN_POS[1][1]+18>mouse_pos[1]>BTN_POS[1][1]-18:
             button1.hover('pauseh')
             if click[0]==1:
                 while True:
                     mouse_pos=mouse.get_pos()
                     click=mouse.get_pressed()
-                    e=event.pump()
-
+                    
+                    e=event.pump() #Don't ever remove this for Odin's sake!
+                    if BTN_POS[0][0]+18>mouse_pos[0]>BTN_POS[0][0]-18 and BTN_POS[0][1]+18>mouse_pos[1]>BTN_POS[0][1]-18:
+                        button0.hover('stoph')
+                        if click[0]==1:
+                            pygame.quit()
+                            quit()
+                    else:
+                        button0.hover('stop')
                     if BTN_POS[2][0]+18>mouse_pos[0]>BTN_POS[2][0]-18 and BTN_POS[2][1]+18>mouse_pos[1]>BTN_POS[2][1]-18:
                         button2.hover('playh')
                         if click[0]==1:
                             button2.hover('play')
+                            start=datetime.date.timetuple(datetime.datetime.now())
                             break
                     else:
                         button2.hover('play')
@@ -340,8 +381,6 @@ def traffic():
     pygame.quit()
     quit()
     clock = pygame.time.Clock() # load clock
-
-
 
 
 
