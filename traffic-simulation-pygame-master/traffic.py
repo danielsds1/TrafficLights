@@ -18,9 +18,10 @@ BGCOLOR=(128,128,128)
 STREET=120
 STRIPE=6
 WIDTH=int(1280/2)
-HEIGHT=int(720*2/3)
+HEIGHT=int(720*8/9)
 
-OCPMAP=[[0 for col in range(WIDTH)] for row in range(HEIGHT)]
+HORMAP=[[0 for col in range(WIDTH)] for row in range(4)]
+VERMAP=[[0 for col in range(HEIGHT)] for row in range(4)]
 
 CAPTION = 'Traffic Simulation'
 SPEED=0
@@ -63,10 +64,18 @@ CROSSWALK=[(WIDTH/2-STREET,(HEIGHT-STREET)/2,STREET/2,STRIPE),
 COUNT_POS=[(SIGNAL_POS[0][0]-10,SIGNAL_POS[0][1]+5,20,20),
            (SIGNAL_POS[1][0]-10,SIGNAL_POS[1][1]-25,20,20),
            (SIGNAL_POS[2][0]-25,SIGNAL_POS[2][1]-10,20,20),
-           (SIGNAL_POS[3][0]+5,SIGNAL_POS[3][1]-10,20,20)
-        ]
+           (SIGNAL_POS[3][0]+5,SIGNAL_POS[3][1]-10,20,20)]
 
-CAR=[40,20]
+CAR_LANES=[(WIDTH,int(HEIGHT/2-3*STREET/8)),
+           (WIDTH,int(HEIGHT/2-STREET/8)),
+           (0,int(HEIGHT/2+STREET/8)),
+           (0,int(HEIGHT/2+3*STREET/8)),
+           (int(WIDTH/2 - 3*STREET/8),0),
+           (int(WIDTH/2 - STREET/8),0),
+           (int(WIDTH/2 + STREET/8),HEIGHT),
+           (int(WIDTH/2 + 3*STREET/8),HEIGHT)]
+
+CARSIZE=[40,20]
 MAX_SPEED=30
 BTN_POS=[[20,20],[61,20],[102,20]]
 velocity=[10,10]
@@ -74,17 +83,19 @@ velocity=[10,10]
 #make a class of cars
 class Cars(Sprite):
     
-    def __init__(self,x,y,d):
-        self.speed=5
+    def __init__(self,coord: tuple,origin: str,lane: str):
+        self.delay=5
+        self.origin=origin
         Sprite.__init__(self)
-        self.image=image.load('img/'+d+'car.png')
-        self.x=int(x) #variable denoting x position of car
-        self.y=int(y) # y position of car
-        self.rect=self.image.get_rect(center = (x,y)) #used to place the car
+        self.image=image.load('img/'+origin+'car.png')
+        self.x=int(coord[0]) #variable denoting x position of car
+        self.y=int(coord[1]) # y position of car
+        self.rect=self.image.get_rect(center = (self.x,self.y)) #used to place the car
     
     #car1.move(xp,signal_counter,car2)
     def move(self,xp,sgn,a):
         
+        #if 
         xp=self.x+xp #new place for the car
         
         if xp>1200:
@@ -107,19 +118,40 @@ class Cars(Sprite):
                 self.x=xp
 
 class Signal(Sprite):
-    def __init__(self,x,y,direction):
+    def __init__(self,x,y,origin):
         Sprite.__init__(self)
-        self.direction=direction
-        self.image=image.load('img/'+direction+'red.png')
+        self.origin=origin
+        self.image=image.load('img/'+origin+'red.png')
         self.rect=self.image.get_rect(center=(x,y))
 
     def change_sign(self,color):
-            self.image=image.load('img/'+self.direction+color+'.png')
-            '''if color=='red':
-                if direction=='l':
-                    for i in street/2:
-                        OCPMAP[][]= 1'''
+            self.image=image.load('img/'+self.origin+color+'.png')
+            if color=='red':
+                if self.origin=='l'or self.origin=='r':
+                    HORMAP[0][int(STOP_LANE[0][0])]= 1
+                    HORMAP[1][int(STOP_LANE[0][0])]= 1
+                    HORMAP[2][int(STOP_LANE[1][0])]= 1
+                    HORMAP[3][int(STOP_LANE[1][0])]= 1
+                else:
+                    VERMAP[0][int(STOP_LANE[0][1])]= 1
+                    VERMAP[1][int(STOP_LANE[0][1])]= 1
+                    VERMAP[2][int(STOP_LANE[1][1])]= 1
+                    VERMAP[3][int(STOP_LANE[1][1])]= 1
                     
+            else: 
+                
+                if self.origin=='l'or self.origin=='r':
+                    HORMAP[0][int(STOP_LANE[0][0])]= 0
+                    HORMAP[1][int(STOP_LANE[0][0])]= 0
+                    HORMAP[2][int(STOP_LANE[1][0])]= 0
+                    HORMAP[3][int(STOP_LANE[1][0])]= 0
+                else:
+                    VERMAP[0][int(STOP_LANE[0][1])]= 0
+                    VERMAP[1][int(STOP_LANE[0][1])]= 0
+                    VERMAP[2][int(STOP_LANE[1][1])]= 0
+                    VERMAP[3][int(STOP_LANE[1][1])]= 0
+                        
+                        
 class Watch(Sprite):
     def __init__(self,x,y):
         Sprite.__init__(self)
@@ -164,6 +196,7 @@ def drawBackground(frame,HEIGHT,WIDTH,STREET,STRIPE):
     #Desenho das faixas de retenção na rua horizontal
     pygame.draw.rect(frame,WHITE, STOP_LANE[2],0)
     pygame.draw.rect(frame,WHITE, STOP_LANE[3],0)
+
     
     #Desenho das faixas tracejadas
     for i in range(int((WIDTH/2-STREET)//(STRIPE*4))-1):
@@ -194,6 +227,7 @@ def drawBackground(frame,HEIGHT,WIDTH,STREET,STRIPE):
     pygame.draw.rect(frame,BLACK, COUNT_POS[1],0)
     pygame.draw.rect(frame,BLACK, COUNT_POS[2],0)
     pygame.draw.rect(frame,BLACK, COUNT_POS[3],0)
+    
 
 def traffic():
     
@@ -206,11 +240,11 @@ def traffic():
     frame = pygame.display.set_mode((WIDTH, HEIGHT))
     display.set_caption(CAPTION)
     
-    lrwatch=Watch(SIGNAL_POS[0][0]-5,SIGNAL_POS[0][1]+15)
-    luwatch=Watch(SIGNAL_POS[0][0]+5,SIGNAL_POS[0][1]+15)
+    lwatch1=Watch(SIGNAL_POS[0][0]-5,SIGNAL_POS[0][1]+15)
+    lwatch2=Watch(SIGNAL_POS[0][0]+5,SIGNAL_POS[0][1]+15)
 
     rwatch1=Watch(SIGNAL_POS[1][0]-5,SIGNAL_POS[1][1]-15)
-    ruwatch=Watch(SIGNAL_POS[1][0]+5,SIGNAL_POS[1][1]-15)
+    rwatch2=Watch(SIGNAL_POS[1][0]+5,SIGNAL_POS[1][1]-15)
 
     uwatch1=Watch(SIGNAL_POS[2][0]-20,SIGNAL_POS[2][1])
     uwatch2=Watch(SIGNAL_POS[2][0]-10,SIGNAL_POS[2][1])
@@ -220,11 +254,11 @@ def traffic():
 
     xp=10
     
-    car1=Cars(xp+0,HEIGHT/2+5*STRIPE/2,'l')
-    car2=Cars(xp+50,HEIGHT/2+15*STRIPE/2,'l')
-    car3=Cars(xp+100,HEIGHT/2+5*STRIPE/2,'l')
-    car4=Cars(xp+150,HEIGHT/2+15*STRIPE/2,'l')
-    
+    car1=Cars(CAR_LANES[0],'r')
+    car2=Cars(CAR_LANES[1],'r')
+    car3=Cars(CAR_LANES[2],'l')
+    car4=Cars(CAR_LANES[3],'l')
+
     lsignal=Signal(SIGNAL_POS[0][0],SIGNAL_POS[0][1],'l')
     lsignal.change_sign('green')
     rsignal=Signal(SIGNAL_POS[1][0],SIGNAL_POS[1][1],'r')
@@ -238,7 +272,7 @@ def traffic():
     
     all_cars=Group(car1,car2,car3,car4)
     all_signals=Group(lsignal,rsignal,usignal,dsignal)
-    all_watches=Group(lrwatch,luwatch,rwatch1,ruwatch,uwatch1,uwatch2,dwatch1,dwatch2)
+    all_watches=Group(lwatch1,lwatch2,rwatch1,rwatch2,uwatch1,uwatch2,dwatch1,dwatch2)
     all_buttons=Group(button0,button1,button2)
 
     signal_counter=0
@@ -278,10 +312,10 @@ def traffic():
 
         if rtime<green_time:
             if cont!=rtime:
-                lrwatch.change_num(mt.floor((green_time-rtime)/10))
-                luwatch.change_num(mt.floor((green_time-rtime)%10))
+                lwatch1.change_num(mt.floor((green_time-rtime)/10))
+                lwatch2.change_num(mt.floor((green_time-rtime)%10))
                 rwatch1.change_num(mt.floor((green_time-rtime)/10))
-                ruwatch.change_num(mt.floor((green_time-rtime)%10))
+                rwatch2.change_num(mt.floor((green_time-rtime)%10))
                 uwatch1.change_num('off')
                 uwatch2.change_num('off')
                 dwatch1.change_num('off')
@@ -292,19 +326,19 @@ def traffic():
         elif rtime<green_time+yellow_time:
 
             if cont!=rtime:
-                lrwatch.change_num('off')
-                luwatch.change_num('off')
+                lwatch1.change_num('off')
+                lwatch2.change_num('off')
                 rwatch1.change_num('off')
-                ruwatch.change_num('off')
+                rwatch2.change_num('off')
             else:
                 cont=rtime
         elif rtime<green_time+red_time:
             if cont!=rtime:
                 
-                lrwatch.change_num('off')
-                luwatch.change_num('off')
+                lwatch1.change_num('off')
+                lwatch2.change_num('off')
                 rwatch1.change_num('off')
-                ruwatch.change_num('off')
+                rwatch2.change_num('off')
                 uwatch1.change_num(mt.floor((green_time+red_time-rtime)/10))
                 uwatch2.change_num(mt.floor((green_time+red_time-rtime)%10))
                 dwatch1.change_num(mt.floor((green_time+red_time-rtime)/10))
