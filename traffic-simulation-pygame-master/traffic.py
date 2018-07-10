@@ -1,10 +1,7 @@
-import pygame
-import sys
-import math as mt
-import numpy as np
 import datetime
+import math as mt
+import random
 from pygame import *
-from pygame.locals import *
 from pygame.sprite import *
 
 # initialize pygame
@@ -17,7 +14,7 @@ BGCOLOR = (128, 128, 128)
 
 STREET = 120
 STRIPE = 6
-WIDTH = int(120 * 6)
+WIDTH = int(120 * 8)
 HEIGHT = int(120 * 6)
 
 HORMAP = [[0 for col in range(WIDTH)] for row in range(4)]
@@ -71,7 +68,8 @@ CAR_LANES = [(WIDTH, int(HEIGHT / 2 - 3 * STREET / 8)),
              (int(WIDTH / 2 + 3 * STREET / 8), HEIGHT)]
 
 CARSIZE = [40, 20]
-MAX_SPEED = 30
+MAX_SPEED= [1,2,5,10]
+MAX_DELAY=10
 BTN_POS = [[20, 20], [61, 20], [102, 20]]
 velocity = [10, 10]
 
@@ -79,9 +77,9 @@ velocity = [10, 10]
 # make a class of cars
 class Cars(Sprite):
 
-  def __init__(self, lane: int, speed=2):
-    self.delay = 5
-    self.speed = speed
+  def __init__(self, lane: int, speed = 0):
+    self.delay = 100
+    self.speed = random.randint(0,3)
     self.lane = lane
     if lane == 0 or lane == 1:
       self.origin = 'r'
@@ -96,117 +94,73 @@ class Cars(Sprite):
       self.origin = 'd'
       self.sign = -1
     Sprite.__init__(self)
-    self.image = image.load('img/' + self.origin + 'car.png')
+    self.image = image.load('img/car/' + self.origin + 'car.png')
     self.x = int(CAR_LANES[lane][0])  # variable denoting x position of car
     self.y = int(CAR_LANES[lane][1])  # y position of car
     self.rect = self.image.get_rect(center=(self.x, self.y))  # used to place the car
 
     # car1.move(xp,signal_counter,car2)
 
-  def move(self, xp, sgn, a):
+  def move(self,signal):
 
-    if self.x < 0 or self.x > WIDTH:
-      self.x = int(CAR_LANES[self.lane][0])
-    if self.y < 0 or self.y > HEIGHT:
-      self.y = int(CAR_LANES[self.lane][1])
+    if self.delay==0:
+      if self.x < 0 or self.x > WIDTH-1:
+        self.x = int(CAR_LANES[self.lane][0])
+      if self.y < 0 or self.y > HEIGHT-1:
+        self.y = int(CAR_LANES[self.lane][1])
 
-    if self.lane < 4:
-      try:
-        if HORMAP[self.lane][self.x + 40 * self.sign] == 0:
-          self.x += self.sign * self.speed
-          if self.lane > 1:
-            self.rect.left = self.x
-          else:
-            self.rect.right = self.x
-      except:
-        self.x += self.sign * self.speed
-        if self.lane > 1:
+      if 0 <= self.lane <= 1:
+        if signal != 2 or self.x !=(STOP_LANE[0][0] + STRIPE + 40):
+          self.x += self.sign * MAX_SPEED[self.speed]
+          self.rect.right = self.x
+        else:
+          self.delay = 100
+      elif 2 <= self.lane <= 3:
+        if signal != 2 or self.x != (STOP_LANE[1][0]-40):
+          self.x += self.sign * MAX_SPEED[self.speed]
           self.rect.left = self.x
         else:
-          self.rect.right = self.x
-    else:
-      try:
-        if VERMAP[self.lane][self.y + 40 * self.sign] == 0:
-          print(self.x,self.y)
-          self.y += self.sign * self.speed
-          if self.lane > 5:
-            self.rect.bottom = self.y
-          else:
-            self.rect.top = self.y
-      except:
-        self.y += self.sign * self.speed
-        if self.lane > 5:
+          self.delay = 100
+
+      elif 4 <= self.lane <= 5:
+        if signal != 2 or self.y != (STOP_LANE[2][1] - 40):
+          self.y += self.sign * MAX_SPEED[self.speed]
+          self.rect.top = self.y
+        else:
+          self.delay = 100
+
+      elif 6 <= self.lane <= 7:
+        if signal != 2 or self.y != (STOP_LANE[3][1] + STRIPE + 40):
+          self.y += self.sign * MAX_SPEED[self.speed]
           self.rect.bottom = self.y
         else:
-          self.rect.top = self.y
+          self.delay = 100
+    else:
+      self.delay-=1
+      if self.delay<0:
+        self.delay=0
 
-    '''
-    # if
-    xp = self.x + xp  # new place for the car
-
-    if xp > WIDTH:
-      xp = xp - 1200
-    dista = xp - a.x
-
-    if sgn == 0 or sgn == 1:
-      self.rect.left = xp*self.sign  # move the car
-      self.x = xp  # update the car position
-    elif sgn == 2:
-      if self.x > WIDTH / 2 - STREET * 6 / 4:
-        self.rect.left = xp
-        self.x = xp
-      elif self.x >= WIDTH / 2 - STREET * 6 / 4 and self.x <= 550:
-        pass
-      elif dista > -20 and dista < 20:  # to check nearby cars
-        pass
-      else:
-        self.rect.left = xp
-        self.x = xp'''
 
 
 class Signal(Sprite):
   def __init__(self, x, y, origin):
     Sprite.__init__(self)
     self.origin = origin
-    self.image = image.load('img/' + origin + 'red.png')
+    self.image = image.load('img/lite/' + origin + 'red.png')
     self.rect = self.image.get_rect(center=(x, y))
 
   def change_sign(self, color):
-    self.image = image.load('img/' + self.origin + color + '.png')
-    if color == 'red':
-      if self.origin == 'l' or self.origin == 'r':
-        HORMAP[0][int(STOP_LANE[0][0]) + STRIPE] = 1
-        HORMAP[1][int(STOP_LANE[0][0]) + STRIPE] = 1
-        HORMAP[2][int(STOP_LANE[1][0])] = 1
-        HORMAP[3][int(STOP_LANE[1][0])] = 1
-      else:
-        VERMAP[0][int(STOP_LANE[2][1])] = 1
-        VERMAP[1][int(STOP_LANE[2][1])] = 1
-        VERMAP[2][int(STOP_LANE[3][1]) + STRIPE] = 1
-        VERMAP[3][int(STOP_LANE[3][1]) + STRIPE] = 1
-
-    else:
-
-      if self.origin == 'l' or self.origin == 'r':
-        HORMAP[0][int(STOP_LANE[0][0]) + STRIPE] = 0
-        HORMAP[1][int(STOP_LANE[0][0]) + STRIPE] = 0
-        HORMAP[2][int(STOP_LANE[1][0])] = 0
-        HORMAP[3][int(STOP_LANE[1][0])] = 0
-      else:
-        VERMAP[0][int(STOP_LANE[2][1])] = 0
-        VERMAP[1][int(STOP_LANE[2][1])] = 0
-        VERMAP[2][int(STOP_LANE[3][1]) + STRIPE] = 0
-        VERMAP[3][int(STOP_LANE[3][1]) + STRIPE] = 0
+    self.image = image.load('img/lite/' + self.origin + color + '.png')
 
 
 class Watch(Sprite):
   def __init__(self, x, y):
     Sprite.__init__(self)
-    self.image = image.load('img/off.png')
+    self.image = image.load('img/num/off.png')
     self.rect = self.image.get_rect(center=(x, y))
 
   def change_num(self, num):
-    self.image = image.load('img/' + str(num) + '.png')
+    self.image = image.load('img/num/' + str(num) + '.png')
 
 
 class Button(Sprite):
@@ -324,42 +278,39 @@ def traffic():
   all_watches = Group(lwatch1, lwatch2, rwatch1, rwatch2, uwatch1, uwatch2, dwatch1, dwatch2)
   all_buttons = Group(button0, button1, button2)
 
-  signal_counter = 0
+  signal_counterh = 0
+  signal_counterv = 0
   cont = 0
   green_time = 10
   yellow_time = 3
   red_time = 10
   total_time = green_time + red_time + yellow_time
+  rtime=0
 
   while True:
 
-    now = datetime.datetime.timetuple(datetime.datetime.now())
-    seconds = (now.tm_hour * 3600 + now.tm_min * 60 + now.tm_sec) - (
-      start.tm_hour * 3600 + start.tm_min * 60 + start.tm_sec)
-    rtime = seconds % total_time
-    # flaggreen=0
-
     if rtime == 0:
-      signal_counter = 0
+      signal_counterh = 0
+      signal_counterv = 2
       lsignal.change_sign('green')
       rsignal.change_sign('green')
       usignal.change_sign('red')
       dsignal.change_sign('red')
     elif rtime == green_time:
-      signal_counter = 1
+      signal_counterh = 1
       lsignal.change_sign('yellow')
       rsignal.change_sign('yellow')
     elif rtime == green_time + yellow_time:
-      signal_counter = 2
+      signal_counterh = 2
+      signal_counterv = 0
       lsignal.change_sign('red')
       rsignal.change_sign('red')
       usignal.change_sign('green')
       dsignal.change_sign('green')
     elif rtime == green_time + red_time:
-      signal_counter = 2
+      signal_counterv = 1
       usignal.change_sign('yellow')
       dsignal.change_sign('yellow')
-
     if rtime < green_time:
       if cont != rtime:
         lwatch1.change_num(mt.floor((green_time - rtime) / 10))
@@ -372,7 +323,6 @@ def traffic():
         dwatch2.change_num('off')
       else:
         cont = rtime
-
     elif rtime < green_time + yellow_time:
 
       if cont != rtime:
@@ -400,21 +350,24 @@ def traffic():
       uwatch2.change_num('off')
       dwatch1.change_num('off')
       dwatch2.change_num('off')
+    now = datetime.datetime.timetuple(datetime.datetime.now())
+    seconds = (now.tm_hour * 3600 + now.tm_min * 60 + now.tm_sec) - (
+      start.tm_hour * 3600 + start.tm_min * 60 + start.tm_sec)
+    rtime = seconds % total_time
     mouse_pos = mouse.get_pos()
     click = mouse.get_pressed()
 
-    xp = 10
-
     drawBackground(frame, HEIGHT, WIDTH, STREET, STRIPE)
     # print(frame.get_at((int(WIDTH/2),int(HEIGHT/2))))
-    car1.move(xp, signal_counter, car2)
-    car2.move(xp, signal_counter, car3)
-    car3.move(xp, signal_counter, car4)
-    car4.move(xp, signal_counter, car1)
-    car5.move(xp, signal_counter, car2)
-    car6.move(xp, signal_counter, car3)
-    car7.move(xp, signal_counter, car4)
-    car8.move(xp, signal_counter, car1)
+    car1.move(signal_counterh)
+    car2.move(signal_counterh)
+    car3.move(signal_counterh)
+    car4.move(signal_counterh)
+    car5.move(signal_counterv)
+    car6.move(signal_counterv)
+    car7.move(signal_counterv)
+    car8.move(signal_counterv)
+
     e = event.pump()  # Don't ever remove this for Odin's sake!
 
     # Stop execution
