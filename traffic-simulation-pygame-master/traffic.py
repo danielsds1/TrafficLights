@@ -1,4 +1,5 @@
 import datetime
+
 import math as mt
 import random
 from pygame import *
@@ -14,11 +15,8 @@ BGCOLOR = (128, 128, 128)
 
 STREET = 120
 STRIPE = 6
-WIDTH = int(120 * 8)
+WIDTH = int(120 * 11)
 HEIGHT = int(120 * 6)
-
-HORMAP = [[0 for col in range(WIDTH)] for row in range(4)]
-VERMAP = [[0 for col in range(HEIGHT)] for row in range(4)]
 
 CAPTION = 'Traffic Simulation'
 SPEED = 0
@@ -68,22 +66,22 @@ CAR_LANES = [(WIDTH, int(HEIGHT / 2 - 3 * STREET / 8)),
              (int(WIDTH / 2 + 3 * STREET / 8), HEIGHT)]
 
 CARSIZE = [40, 20]
-MAX_SPEED= [1,2,5,10]
-MAX_DELAY=10
 BTN_POS = [[20, 20], [61, 20], [102, 20]]
+MAX_CAR=[15,10]
 velocity = [10, 10]
 
 
 # make a class of cars
 class Cars(Sprite):
 
-  def __init__(self, lane: int, speed = 0):
-    self.delay = 100
-    self.speed = random.randint(0,3)
+  def __init__(self, lane: int):
+    self.max_speed=random.randint(5,10)
+    self.speed = self.max_speed
     self.lane = lane
     if lane == 0 or lane == 1:
       self.origin = 'r'
       self.sign = -1
+
     elif lane == 2 or lane == 3:
       self.origin = 'l'
       self.sign = 1
@@ -101,44 +99,53 @@ class Cars(Sprite):
 
     # car1.move(xp,signal_counter,car2)
 
-  def move(self,signal):
+  def move(self, signal, car_ahead):
 
-    if self.delay==0:
-      if self.x < 0 or self.x > WIDTH-1:
-        self.x = int(CAR_LANES[self.lane][0])
-      if self.y < 0 or self.y > HEIGHT-1:
-        self.y = int(CAR_LANES[self.lane][1])
+    #if self.x < 0 or self.x > WIDTH - 1:
+    #  self.x = int(CAR_LANES[self.lane][0])
+    #if self.y < 0 or self.y > HEIGHT - 1:
+    #  self.y = int(CAR_LANES[self.lane][1])
+    self.speed += 0.05
+    if self.speed > self.max_speed:
+      self.speed = self.max_speed
+    if car_ahead is not None:
 
-      if 0 <= self.lane <= 1:
-        if signal != 2 or self.x !=(STOP_LANE[0][0] + STRIPE + 40):
-          self.x += self.sign * MAX_SPEED[self.speed]
+      if car_ahead.speed<self.speed and abs(self.x - car_ahead.x)<50 and self.lane<4:
+        self.speed = car_ahead.speed
+      if car_ahead.speed < self.speed and abs(self.y - car_ahead.y) < 50 and self.lane > 4:
+        self.speed = car_ahead.speed
+
+    if 0 <= self.lane <= 1:
+      if signal != 2 or abs(self.x - (STOP_LANE[0][0] + STRIPE + 40)) > 5:
+        if car_ahead is None or abs(self.x - car_ahead.x)>50:
+          self.x += self.sign * self.speed
           self.rect.right = self.x
-        else:
-          self.delay = 100
-      elif 2 <= self.lane <= 3:
-        if signal != 2 or self.x != (STOP_LANE[1][0]-40):
-          self.x += self.sign * MAX_SPEED[self.speed]
-          self.rect.left = self.x
-        else:
-          self.delay = 100
+      else:
+        self.speed=0
 
-      elif 4 <= self.lane <= 5:
-        if signal != 2 or self.y != (STOP_LANE[2][1] - 40):
-          self.y += self.sign * MAX_SPEED[self.speed]
+    elif 2 <= self.lane <= 3:
+      if signal != 2 or abs(self.x - (STOP_LANE[1][0])) > 5:
+        if car_ahead is None or abs(self.x - car_ahead.x)>50:
+          self.x += self.sign * self.speed
+          self.rect.right = self.x
+      else:
+        self.speed=0
+
+    elif 4 <= self.lane <= 5:
+      if signal != 2 or abs(self.y - (STOP_LANE[2][1] - 40)) > 5:
+        if car_ahead is None or abs(self.y - car_ahead.y)>50:
+          self.y += self.sign * self.speed
           self.rect.top = self.y
-        else:
-          self.delay = 100
+      else:
+        self.speed = 0
 
-      elif 6 <= self.lane <= 7:
-        if signal != 2 or self.y != (STOP_LANE[3][1] + STRIPE + 40):
-          self.y += self.sign * MAX_SPEED[self.speed]
+    elif 6 <= self.lane <= 7:
+      if signal != 2 or abs(self.y - (STOP_LANE[3][1] + STRIPE + 40)) > 5:
+        if car_ahead is None or abs(self.y - car_ahead.y) > 50:
+          self.y += self.sign * self.speed
           self.rect.bottom = self.y
-        else:
-          self.delay = 100
-    else:
-      self.delay-=1
-      if self.delay<0:
-        self.delay=0
+      else:
+        self.speed = 0
 
 
 
@@ -234,7 +241,7 @@ def traffic():
   clock = pygame.time.Clock()  # load clock
   # datetime.date.timetuple(datetime.datetime.now())
   # time.struct_time(tm_year=2018, tm_mon=7, tm_mday=4, tm_hour=0, tm_min=0, tm_sec=0, tm_wday=2, tm_yday=185, tm_isdst=-1)
-  start = datetime.date.timetuple(datetime.datetime.now())
+  start = datetime.datetime.timetuple(datetime.datetime.now())
 
   frame = pygame.display.set_mode((WIDTH, HEIGHT))
   display.set_caption(CAPTION)
@@ -251,41 +258,34 @@ def traffic():
   dwatch1 = Watch(SIGNAL_POS[3][0] + 10, SIGNAL_POS[3][1])
   dwatch2 = Watch(SIGNAL_POS[3][0] + 20, SIGNAL_POS[3][1])
 
-  xp = 10
+  carr=[[Cars(0), None], [Cars(1), None]]
+  carl=[[Cars(2), None], [Cars(3), None]]
+  caru=[[Cars(4), None], [Cars(5), None]]
+  card=[[Cars(6), None], [Cars(7), None]]
 
-  car1 = Cars(0)
-  car2 = Cars(1)
-  car3 = Cars(2)
-  car4 = Cars(3)
-  car5 = Cars(4)
-  car6 = Cars(5)
-  car7 = Cars(6)
-  car8 = Cars(7)
-
-  lsignal = Signal(SIGNAL_POS[0][0], SIGNAL_POS[0][1], 'l')
-  lsignal.change_sign('green')
-  rsignal = Signal(SIGNAL_POS[1][0], SIGNAL_POS[1][1], 'r')
-  rsignal.change_sign('green')
-  usignal = Signal(SIGNAL_POS[2][0], SIGNAL_POS[2][1], 'u')
-  dsignal = Signal(SIGNAL_POS[3][0], SIGNAL_POS[3][1], 'd')
+  lsignal = Signal(SIGNAL_POS[0][0], SIGNAL_POS[0][1], 'l'); lsignal.change_sign('green')
+  rsignal = Signal(SIGNAL_POS[1][0], SIGNAL_POS[1][1], 'r'); rsignal.change_sign('green')
+  usignal = Signal(SIGNAL_POS[2][0], SIGNAL_POS[2][1], 'u'); usignal.change_sign('red')
+  dsignal = Signal(SIGNAL_POS[3][0], SIGNAL_POS[3][1], 'd'); dsignal.change_sign('red')
 
   button0 = Button('stop', BTN_POS[0][0], BTN_POS[0][1])
   button1 = Button('pause', BTN_POS[1][0], BTN_POS[1][1])
   button2 = Button('play', BTN_POS[2][0], BTN_POS[2][1])
 
-  all_cars = Group(car1, car2, car3, car4, car5, car6, car7, car8)
+  all_cars = Group(carr[0][:-1], carr[1][:-1], carl[0][:-1], carl[1][:-1], caru[0][:-1], caru[1][:-1], card[0][:-1],
+                   card[1][:-1])
   all_signals = Group(lsignal, rsignal, usignal, dsignal)
   all_watches = Group(lwatch1, lwatch2, rwatch1, rwatch2, uwatch1, uwatch2, dwatch1, dwatch2)
   all_buttons = Group(button0, button1, button2)
 
   signal_counterh = 0
-  signal_counterv = 0
+  signal_counterv = 2
   cont = 0
   green_time = 10
   yellow_time = 3
   red_time = 10
   total_time = green_time + red_time + yellow_time
-  rtime=0
+  rtime = 0
 
   while True:
 
@@ -351,23 +351,72 @@ def traffic():
       dwatch1.change_num('off')
       dwatch2.change_num('off')
     now = datetime.datetime.timetuple(datetime.datetime.now())
-    seconds = (now.tm_hour * 3600 + now.tm_min * 60 + now.tm_sec) - (
-      start.tm_hour * 3600 + start.tm_min * 60 + start.tm_sec)
+    seconds = (now.tm_hour * 3600 + now.tm_min * 60 + now.tm_sec) - (start.tm_hour * 3600 + start.tm_min * 60 + start.tm_sec)
     rtime = seconds % total_time
     mouse_pos = mouse.get_pos()
     click = mouse.get_pressed()
 
     drawBackground(frame, HEIGHT, WIDTH, STREET, STRIPE)
     # print(frame.get_at((int(WIDTH/2),int(HEIGHT/2))))
-    car1.move(signal_counterh)
-    car2.move(signal_counterh)
-    car3.move(signal_counterh)
-    car4.move(signal_counterh)
-    car5.move(signal_counterv)
-    car6.move(signal_counterv)
-    car7.move(signal_counterv)
-    car8.move(signal_counterv)
+    for i in range(len(carr)):
+      for j in range(len(carr[i])-1):
+        carr[i][j].move(signal_counterh, carr[i][j+1])
 
+    for i in range(len(carl)):
+      for j in range(len(carl[i])-1):
+        carl[i][j].move(signal_counterh, carl[i][j + 1])
+
+    for i in range(len(caru)):
+      for j in range(len(caru[i])-1):
+        caru[i][j].move(signal_counterv, caru[i][j + 1])
+
+    for i in range(len(card)):
+      for j in range(len(card[i])-1):
+        card[i][j].move(signal_counterv, card[i][j + 1])
+
+    if carr[0][0].x < WIDTH-40 and len(carr[0]) < MAX_CAR[0] and random.randint(0, 4) == 0:
+      carr[0].insert(0, Cars(0))
+    if carr[0][len(carr[0])-2].x < 0:
+      carr[0].pop(len(carr[0])-2)
+
+    if carr[1][0].x < WIDTH-40 and len(carr[1]) < MAX_CAR[0] and random.randint(0, 4) == 0:
+      carr[1].insert(0, Cars(1))
+    if carr[1][len(carr[1])-2].x < 0:
+      carr[1].pop(len(carr[1])-2)
+
+    if carl[0][0].x > 40 and len(carl[0]) < MAX_CAR[0] and random.randint(0, 4) == 0:
+      carl[0].insert(0, Cars(2))
+    if carl[0][len(carl[0])-2].x > WIDTH:
+      carl[0].pop(len(carl[0])-2)
+
+    if carl[1][0].x > 40 and len(carl[1]) < MAX_CAR[0] and random.randint(0, 4) == 0:
+      carl[1].insert(0, Cars(3))
+    if carl[1][len(carl[1])-2].x > WIDTH:
+      carl[1].pop(len(carl[1])-2)
+
+    if caru[0][0].y > 40 and len(caru[0]) < MAX_CAR[1] and random.randint(0, 8) == 0:
+      caru[0].insert(0, Cars(4))
+    if caru[0][len(caru[0])-2].y > HEIGHT:
+      caru[0].pop(len(caru[0])-2)
+
+    if caru[1][0].y > 40 and len(caru[1]) < MAX_CAR[1] and random.randint(0, 8) == 0:
+      caru[1].insert(0, Cars(5))
+    if caru[1][len(caru[1])-2].y > HEIGHT:
+      caru[1].pop(len(caru[1])-2)
+
+    if card[0][0].y < WIDTH - 40 and len(card[0]) < MAX_CAR[1] and random.randint(0, 8) == 0:
+      card[0].insert(0, Cars(6))
+    if card[0][len(card[0])-2].y < 0:
+      card[0].pop(len(card[0])-2)
+
+    if card[1][0].y < WIDTH - 40 and len(card[1]) < MAX_CAR[1] and random.randint(0, 8) == 0:
+      card[1].insert(0, Cars(7))
+    if card[1][len(card[1])-2].y < 0:
+      card[1].pop(len(card[1])-2)
+
+
+
+    all_cars = Group(carr[0][:-1], carr[1][:-1], carl[0][:-1], carl[1][:-1],caru[0][:-1], caru[1][:-1],card[0][:-1], card[1][:-1])
     e = event.pump()  # Don't ever remove this for Odin's sake!
 
     # Stop execution
@@ -401,7 +450,7 @@ def traffic():
             button2.hover('playh')
             if click[0] == 1:
               button2.hover('play')
-              start = datetime.date.timetuple(datetime.datetime.now())
+              start = datetime.datetime.timetuple(datetime.datetime.now())
               break
           else:
             button2.hover('play')
