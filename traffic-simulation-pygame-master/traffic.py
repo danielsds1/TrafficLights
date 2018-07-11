@@ -1,11 +1,12 @@
 import datetime
-
+import os
 import math as mt
 import random
 from pygame import *
 from pygame.sprite import *
 
 # initialize pygame
+os.environ['SDL_VIDEO_CENTERED'] = '1'
 pygame.init()
 
 BLACK = (0, 0, 0)
@@ -64,6 +65,7 @@ CAR_LANES = [(WIDTH, int(HEIGHT / 2 - 3 * STREET / 8)),
              (int(WIDTH / 2 - STREET / 8), 0),
              (int(WIDTH / 2 + STREET / 8), HEIGHT),
              (int(WIDTH / 2 + 3 * STREET / 8), HEIGHT)]
+FLOW=[200,200,400,400]
 
 CARSIZE = [40, 20]
 BTN_POS = [[20, 20], [61, 20], [102, 20]]
@@ -75,7 +77,7 @@ velocity = [10, 10]
 class Cars(Sprite):
 
   def __init__(self, lane: int):
-    self.max_speed=random.randint(5,10)
+    self.max_speed=random.randint(3,6)
     self.speed = self.max_speed
     self.lane = lane
     if lane == 0 or lane == 1:
@@ -179,6 +181,19 @@ class Button(Sprite):
   def hover(self, button):
     self.image = image.load('img/btn/' + button + '.png')
 
+def logic():
+  green_time='a'
+  red_time='b'
+  return green_time,red_time
+
+def randLogic():
+  MAX_GT=30
+  MIN_GT=10
+  MAX_RT=30
+  MIN_RT=10
+  green_time=random.randint(MIN_GT,MAX_GT)
+  red_time=random.randint(MIN_RT,MAX_RT)
+  return green_time,red_time
 
 def drawBackground(frame, HEIGHT, WIDTH, STREET, STRIPE):
   frame.fill(BGCOLOR)
@@ -281,37 +296,45 @@ def traffic():
   signal_counterh = 0
   signal_counterv = 2
   cont = 0
-  green_time = 10
   yellow_time = 3
-  red_time = 10
-  total_time = green_time + red_time + yellow_time
+  try:
+    green_time, red_time = logic()
+    total_time = green_time + red_time + yellow_time
+  except:
+    green_time, red_time = randLogic()
+    total_time = green_time + red_time + yellow_time
   rtime = 0
 
   while True:
 
     if rtime == 0:
-      signal_counterh = 0
       signal_counterv = 2
+      usignal.change_sign('red')
+      dsignal.change_sign('red')
+    if rtime == 1:
+      signal_counterh = 0
       lsignal.change_sign('green')
       rsignal.change_sign('green')
       usignal.change_sign('red')
       dsignal.change_sign('red')
-    elif rtime == green_time:
+    elif rtime == green_time+1:
       signal_counterh = 1
       lsignal.change_sign('yellow')
       rsignal.change_sign('yellow')
     elif rtime == green_time + yellow_time:
       signal_counterh = 2
-      signal_counterv = 0
       lsignal.change_sign('red')
       rsignal.change_sign('red')
+    elif rtime == green_time + yellow_time+1:
+      signal_counterv = 0
       usignal.change_sign('green')
       dsignal.change_sign('green')
-    elif rtime == green_time + red_time:
+    elif rtime == green_time + red_time+1:
       signal_counterv = 1
       usignal.change_sign('yellow')
       dsignal.change_sign('yellow')
-    if rtime < green_time:
+
+    if rtime < green_time+1:
       if cont != rtime:
         lwatch1.change_num(mt.floor((green_time - rtime) / 10))
         lwatch2.change_num(mt.floor((green_time - rtime) % 10))
@@ -323,7 +346,7 @@ def traffic():
         dwatch2.change_num('off')
       else:
         cont = rtime
-    elif rtime < green_time + yellow_time:
+    elif rtime < green_time + yellow_time+1:
 
       if cont != rtime:
         lwatch1.change_num('off')
@@ -332,7 +355,7 @@ def traffic():
         rwatch2.change_num('off')
       else:
         cont = rtime
-    elif rtime < green_time + red_time:
+    elif rtime < green_time + red_time+1:
       if cont != rtime:
 
         lwatch1.change_num('off')
@@ -374,42 +397,58 @@ def traffic():
       for j in range(len(card[i])-1):
         card[i][j].move(signal_counterv, card[i][j + 1])
 
-    if carr[0][0].x < WIDTH-40 and len(carr[0]) < MAX_CAR[0] and random.randint(0, 4) == 0:
+    if carr[0][0] is None:
+      carr[0].insert(0, Cars(0))
+    if carr[0][0].x < WIDTH-40 and len(carr[0]) < MAX_CAR[0] and random.randint(0, FLOW[0]) == 0:
       carr[0].insert(0, Cars(0))
     if carr[0][len(carr[0])-2].x < 0:
       carr[0].pop(len(carr[0])-2)
 
-    if carr[1][0].x < WIDTH-40 and len(carr[1]) < MAX_CAR[0] and random.randint(0, 4) == 0:
+    if carr[1][0] is None:
+      carr[1].insert(0, Cars(1))
+    if carr[1][0].x < WIDTH-40 and len(carr[1]) < MAX_CAR[0] and random.randint(0, FLOW[0]) == 0:
       carr[1].insert(0, Cars(1))
     if carr[1][len(carr[1])-2].x < 0:
       carr[1].pop(len(carr[1])-2)
 
-    if carl[0][0].x > 40 and len(carl[0]) < MAX_CAR[0] and random.randint(0, 4) == 0:
+    if carl[0][0] is None:
+      carl[0].insert(0, Cars(2))
+    if carl[0][0].x > 40 and len(carl[0]) < MAX_CAR[0] and random.randint(0, FLOW[1]) == 0:
       carl[0].insert(0, Cars(2))
     if carl[0][len(carl[0])-2].x > WIDTH:
       carl[0].pop(len(carl[0])-2)
 
-    if carl[1][0].x > 40 and len(carl[1]) < MAX_CAR[0] and random.randint(0, 4) == 0:
+    if carl[1][0] is None:
+      carl[1].insert(0, Cars(3))
+    if carl[1][0].x > 40 and len(carl[1]) < MAX_CAR[0] and random.randint(0, FLOW[1]) == 0:
       carl[1].insert(0, Cars(3))
     if carl[1][len(carl[1])-2].x > WIDTH:
       carl[1].pop(len(carl[1])-2)
 
-    if caru[0][0].y > 40 and len(caru[0]) < MAX_CAR[1] and random.randint(0, 8) == 0:
+    if caru[0][0] is None:
+      caru[0].insert(0, Cars(4))
+    if caru[0][0].y > 40 and len(caru[0]) < MAX_CAR[1] and random.randint(0, FLOW[2]) == 0:
       caru[0].insert(0, Cars(4))
     if caru[0][len(caru[0])-2].y > HEIGHT:
       caru[0].pop(len(caru[0])-2)
 
-    if caru[1][0].y > 40 and len(caru[1]) < MAX_CAR[1] and random.randint(0, 8) == 0:
+    if caru[1][0] is None:
+      caru[1].insert(0, Cars(5))
+    if caru[1][0].y > 40 and len(caru[1]) < MAX_CAR[1] and random.randint(0, FLOW[2]) == 0:
       caru[1].insert(0, Cars(5))
     if caru[1][len(caru[1])-2].y > HEIGHT:
       caru[1].pop(len(caru[1])-2)
 
-    if card[0][0].y < WIDTH - 40 and len(card[0]) < MAX_CAR[1] and random.randint(0, 8) == 0:
+    if card[0][0] is None:
+      card[0].insert(0, Cars(6))
+    if card[0][0].y < WIDTH - 40 and len(card[0]) < MAX_CAR[1] and random.randint(0, FLOW[3]) == 0:
       card[0].insert(0, Cars(6))
     if card[0][len(card[0])-2].y < 0:
       card[0].pop(len(card[0])-2)
 
-    if card[1][0].y < WIDTH - 40 and len(card[1]) < MAX_CAR[1] and random.randint(0, 8) == 0:
+    if card[1][0] is None:
+      card[1].insert(0, Cars(7))
+    if card[1][0].y < WIDTH - 40 and len(card[1]) < MAX_CAR[1] and random.randint(0, FLOW[3]) == 0:
       card[1].insert(0, Cars(7))
     if card[1][len(card[1])-2].y < 0:
       card[1].pop(len(card[1])-2)
@@ -451,6 +490,8 @@ def traffic():
             if click[0] == 1:
               button2.hover('play')
               start = datetime.datetime.timetuple(datetime.datetime.now())
+              green_time, red_time = logic()
+              total_time = green_time + red_time + yellow_time
               break
           else:
             button2.hover('play')
