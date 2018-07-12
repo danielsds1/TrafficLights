@@ -37,18 +37,21 @@ def traffic():
   vias = random.randint(viap, 2)
   weather = random.randint(0, 1)
   flow = [random.randint(0, 1), random.randint(0, 1), random.randint(2, 3), random.randint(0, 1)]
-  timeg = [0, 0, 0, 0]
+  print(viap, vias, weather, flow)
+  '''timeg = [0, 0, 0, 0]
   timer = [0, 0, 0, 0]
   export = {
-    'via': [0 for i in range(50)],
+    'viap': [0 for i in range(50)],
+    'vias': [0 for i in range(50)],
     'weather': [0 for i in range(50)],
     'flow': [0 for i in range(50)],
     'timeg': [0 for i in range(50)],
     'timer': [0 for i in range(50)],
   }
-  export['via'][0] = viap
+  export['viap'][0] = viap
+  export['vias'][0] = vias
   export['weather'][0] = weather
-  export['flow'][0] = flow[0] + flow[1]
+  export['flow'][0] = flow[0] + flow[1]'''
 
   # datetime.date.timetuple(datetime.datetime.now())
   # time.struct_time(tm_year=2018, tm_mon=7, tm_mday=4, tm_hour=0, tm_min=0, tm_sec=0, tm_wday=2, tm_yday=185, tm_isdst=-1)
@@ -98,34 +101,30 @@ def traffic():
   cont = 0
   yellow_time = 3
 
-  try:
-    green_time, red_time = logic()
-    total_time = green_time + red_time + yellow_time
-  except:
-    green_time, red_time = randLogic()
-    total_time = green_time + red_time + yellow_time
+  green_time, red_time = logic(viap, weather, flow[0] + flow[1], vias, True, 1)
+  total_time = green_time + red_time + yellow_time
   rtime = 0
-  iter = 0
+  #iter = 0
 
-  while iter < 50:
+  while True:
 
     if rtime == 0:
       signal_counterv = 2
       usignal.change_sign('red')
       dsignal.change_sign('red')
-      if export['timeg'][iter] != 0:
-        iter += 1
-        viap = random.randint(0, 2)
-        vias = random.randint(viap, 2)
-        weather = random.randint(0, 1)
-        flow = [random.randint(0, 1), random.randint(0, 1), random.randint(2, 3), random.randint(0, 1)]
-        export['via'][iter] = viap
-        export['weather'][iter] = weather
-        export['flow'][iter] = flow[0] + flow[1]
-        timeg = [0, 0, 0, 0]
-        timer = [0, 0, 0, 0]
-        print(iter-1, export['via'][iter - 1], export['weather'][iter - 1], export['flow'][iter - 1], export['timeg'][iter - 1],
-              export['timer'][iter - 1])
+      # if export['timeg'][iter] != 0:
+      #  iter += 1
+      #  viap = random.randint(0, 2)
+      #  vias = random.randint(viap, 2)
+      #  weather = random.randint(0, 1)
+      #  flow = [random.randint(0, 1), random.randint(0, 1), random.randint(2, 3), random.randint(0, 1)]
+      # export['viap'][iter] = viap
+      # export['vias'][iter] = vias
+      # export['weather'][iter] = weather
+      # export['flow'][iter] = flow[0] + flow[1]
+      # timeg = [0, 0, 0, 0]
+      # timer = [0, 0, 0, 0]
+      # print(iter-1, export['viap'][iter - 1],export['viap'][iter - 1], export['weather'][iter - 1], export['flow'][iter - 1], export['timeg'][iter - 1],              export['timer'][iter - 1])
     if rtime == 1:
       signal_counterh = 0
       lsignal.change_sign('green')
@@ -148,8 +147,8 @@ def traffic():
       signal_counterv = 1
       usignal.change_sign('yellow')
       dsignal.change_sign('yellow')
-      export['timeg'][iter] = max(timeg)
-      export['timer'][iter] = max(timer)
+    #      export['timeg'][iter] = max(timeg)
+    #      export['timer'][iter] = max(timer)
 
     if rtime < green_time + 1:
       if cont != rtime:
@@ -245,45 +244,45 @@ def traffic():
 
     if caru[0][0] is None:
       caru[0].insert(0, Cars(4, WEATHER[weather], vias))
-      timeg[0] = rtime - green_time - yellow_time if timeg[0] == 0 else timeg[0]
+      # timeg[0] = rtime - green_time - yellow_time if timeg[0] == 0 else timeg[0]
     if caru[0][0].y > 40 and random.randint(0, FLOW[INTENSITY[flow[2]]]) == 0:
       if len(caru[0]) < MAX_CAR[1]:
         caru[0].insert(0, Cars(4, WEATHER[weather], vias))
-      else:
-        timer[0] = rtime if timer[0] == 0 else timer[0]
+      # else:
+      # timer[0] = rtime if timer[0] == 0 else timer[0]
     if caru[0][len(caru[0]) - 2].y > HEIGHT:
       caru[0].pop(len(caru[0]) - 2)
 
     if caru[1][0] is None:
       caru[1].insert(0, Cars(5, WEATHER[weather], vias))
-      timeg[1] = rtime - green_time - yellow_time if timeg[1] == 0 else timeg[1]
+      # timeg[1] = rtime - green_time - yellow_time if timeg[1] == 0 else timeg[1]
     if caru[1][0].y > 40 and random.randint(0, FLOW[INTENSITY[flow[2]]]) == 0:
       if len(caru[1]) < MAX_CAR[1]:
         caru[1].insert(0, Cars(5, WEATHER[weather], vias))
-      else:
-        timer[1] = rtime if timer[1] == 0 else timer[1]
+      # else:
+      # timer[1] = rtime if timer[1] == 0 else timer[1]
     if caru[1][len(caru[1]) - 2].y > HEIGHT:
       caru[1].pop(len(caru[1]) - 2)
 
     if card[0][0] is None:
       card[0].insert(0, Cars(6, WEATHER[weather], vias))
-      timeg[2] = rtime - green_time - yellow_time if timeg[2] == 0 else timeg[2]
+      # timeg[2] = rtime - green_time - yellow_time if timeg[2] == 0 else timeg[2]
     if card[0][0].y < WIDTH - 40 and random.randint(0, FLOW[INTENSITY[flow[3]]]) == 0:
       if len(card[0]) < MAX_CAR[1]:
         card[0].insert(0, Cars(6, WEATHER[weather], vias))
-      else:
-        timer[2] = rtime if timer[2] == 0 else timer[2]
+      # else:
+      # timer[2] = rtime if timer[2] == 0 else timer[2]
     if card[0][len(card[0]) - 2].y < 0:
       card[0].pop(len(card[0]) - 2)
 
     if card[1][0] is None:
       card[1].insert(0, Cars(7, WEATHER[weather], vias))
-      timeg[3] = rtime - green_time - yellow_time if timeg[3] == 0 else timeg[3]
+      # timeg[3] = rtime - green_time - yellow_time if timeg[3] == 0 else timeg[3]
     if card[1][0].y < WIDTH - 40 and random.randint(0, FLOW[INTENSITY[3]]) == 0:
       if len(card[1]) < MAX_CAR[1]:
         card[1].insert(0, Cars(7, WEATHER[weather], vias))
-      else:
-        timer[3] = rtime if timer[3] == 0 else timer[3]
+      # else:
+      # timer[3] = rtime if timer[3] == 0 else timer[3]
     if card[1][len(card[1]) - 2].y < 0:
       card[1].pop(len(card[1]) - 2)
 
