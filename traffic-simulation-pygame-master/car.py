@@ -12,10 +12,15 @@ CAR_LANES = [(WIDTH, int(HEIGHT / 2 - 3 * STREET / 8)),
              (int(WIDTH / 2 + STREET / 8), HEIGHT),
              (int(WIDTH / 2 + 3 * STREET / 8), HEIGHT)]
 
+MAX_SPEED = [(4, 8),
+             (3, 6),
+             (2, 4)]
+
+
 class Cars(Sprite):
 
-  def __init__(self, lane: int):
-    self.max_speed=random.randint(3,6)
+  def __init__(self, lane: int, weather=1.0, via=0):
+    self.max_speed = random.randint(MAX_SPEED[via][0], MAX_SPEED[via][1]) * weather
     self.speed = self.max_speed
     self.lane = lane
     if lane == 0 or lane == 1:
@@ -46,30 +51,30 @@ class Cars(Sprite):
       self.speed = self.max_speed
     if car_ahead is not None:
 
-      if car_ahead.speed<self.speed and abs(self.x - car_ahead.x)<50 and self.lane<4:
+      if car_ahead.speed < self.speed and abs(self.x - car_ahead.x) < 50 and self.lane < 4:
         self.speed = car_ahead.speed
       if car_ahead.speed < self.speed and abs(self.y - car_ahead.y) < 50 and self.lane > 4:
         self.speed = car_ahead.speed
 
     if 0 <= self.lane <= 1:
       if signal != 2 or abs(self.x - (STOP_LANE[0][0] + STRIPE + 40)) > 5:
-        if car_ahead is None or abs(self.x - car_ahead.x)>50:
+        if car_ahead is None or abs(self.x - car_ahead.x) > 50:
           self.x += self.sign * self.speed
           self.rect.right = self.x
       else:
-        self.speed=0
+        self.speed = 0
 
     elif 2 <= self.lane <= 3:
       if signal != 2 or abs(self.x - (STOP_LANE[1][0])) > 5:
-        if car_ahead is None or abs(self.x - car_ahead.x)>50:
+        if car_ahead is None or abs(self.x - car_ahead.x) > 50:
           self.x += self.sign * self.speed
           self.rect.right = self.x
       else:
-        self.speed=0
+        self.speed = 0
 
     elif 4 <= self.lane <= 5:
       if signal != 2 or abs(self.y - (STOP_LANE[2][1] - 40)) > 5:
-        if car_ahead is None or abs(self.y - car_ahead.y)>50:
+        if car_ahead is None or abs(self.y - car_ahead.y) > 50:
           self.y += self.sign * self.speed
           self.rect.top = self.y
       else:

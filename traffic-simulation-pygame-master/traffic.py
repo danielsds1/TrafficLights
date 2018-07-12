@@ -14,8 +14,10 @@ from buttons import *
 # initialize pygame
 
 CAPTION = 'Traffic Simulation'
-FLOW = [200, 200, 400, 400]
-MAX_CAR = [15, 10]
+FLOW = [50, 100, 200, 400]
+MAX_CAR = [11, 5]
+INTENSITY = [0, 1, 2, 3]
+WEATHER = [1, 0.8]
 
 
 def randLogic():
@@ -30,6 +32,24 @@ def randLogic():
 
 def traffic():
   clock = pygame.time.Clock()  # load clock
+
+  viap = random.randint(0, 2)
+  vias = random.randint(viap, 2)
+  weather = random.randint(0, 1)
+  flow = [random.randint(0, 1), random.randint(0, 1), random.randint(2, 3), random.randint(0, 1)]
+  timeg = [0, 0, 0, 0]
+  timer = [0, 0, 0, 0]
+  export = {
+    'via': [0 for i in range(50)],
+    'weather': [0 for i in range(50)],
+    'flow': [0 for i in range(50)],
+    'timeg': [0 for i in range(50)],
+    'timer': [0 for i in range(50)],
+  }
+  export['via'][0] = viap
+  export['weather'][0] = weather
+  export['flow'][0] = flow[0] + flow[1]
+
   # datetime.date.timetuple(datetime.datetime.now())
   # time.struct_time(tm_year=2018, tm_mon=7, tm_mday=4, tm_hour=0, tm_min=0, tm_sec=0, tm_wday=2, tm_yday=185, tm_isdst=-1)
   start = datetime.datetime.timetuple(datetime.datetime.now())
@@ -49,10 +69,10 @@ def traffic():
   dwatch1 = Watch(SIGNAL_POS[3][0] + 10, SIGNAL_POS[3][1])
   dwatch2 = Watch(SIGNAL_POS[3][0] + 20, SIGNAL_POS[3][1])
 
-  carr = [[Cars(0), None], [Cars(1), None]]
-  carl = [[Cars(2), None], [Cars(3), None]]
-  caru = [[Cars(4), None], [Cars(5), None]]
-  card = [[Cars(6), None], [Cars(7), None]]
+  carr = [[Cars(0, WEATHER[weather], viap), None], [Cars(1, WEATHER[weather], viap), None]]
+  carl = [[Cars(2, WEATHER[weather], viap), None], [Cars(3, WEATHER[weather], viap), None]]
+  caru = [[Cars(4, WEATHER[weather], vias), None], [Cars(5, WEATHER[weather], vias), None]]
+  card = [[Cars(6, WEATHER[weather], vias), None], [Cars(7, WEATHER[weather], vias), None]]
 
   lsignal = Signal(SIGNAL_POS[0][0], SIGNAL_POS[0][1], 'l');
   lsignal.change_sign('green')
@@ -77,6 +97,7 @@ def traffic():
   signal_counterv = 2
   cont = 0
   yellow_time = 3
+
   try:
     green_time, red_time = logic()
     total_time = green_time + red_time + yellow_time
@@ -84,13 +105,27 @@ def traffic():
     green_time, red_time = randLogic()
     total_time = green_time + red_time + yellow_time
   rtime = 0
+  iter = 0
 
-  while True:
+  while iter < 50:
 
     if rtime == 0:
       signal_counterv = 2
       usignal.change_sign('red')
       dsignal.change_sign('red')
+      if export['timeg'][iter] != 0:
+        iter += 1
+        viap = random.randint(0, 2)
+        vias = random.randint(viap, 2)
+        weather = random.randint(0, 1)
+        flow = [random.randint(0, 1), random.randint(0, 1), random.randint(2, 3), random.randint(0, 1)]
+        export['via'][iter] = viap
+        export['weather'][iter] = weather
+        export['flow'][iter] = flow[0] + flow[1]
+        timeg = [0, 0, 0, 0]
+        timer = [0, 0, 0, 0]
+        print(iter-1, export['via'][iter - 1], export['weather'][iter - 1], export['flow'][iter - 1], export['timeg'][iter - 1],
+              export['timer'][iter - 1])
     if rtime == 1:
       signal_counterh = 0
       lsignal.change_sign('green')
@@ -113,6 +148,8 @@ def traffic():
       signal_counterv = 1
       usignal.change_sign('yellow')
       dsignal.change_sign('yellow')
+      export['timeg'][iter] = max(timeg)
+      export['timer'][iter] = max(timer)
 
     if rtime < green_time + 1:
       if cont != rtime:
@@ -155,7 +192,7 @@ def traffic():
       dwatch2.change_num('off')
     now = datetime.datetime.timetuple(datetime.datetime.now())
     seconds = (now.tm_hour * 3600 + now.tm_min * 60 + now.tm_sec) - (
-        start.tm_hour * 3600 + start.tm_min * 60 + start.tm_sec)
+      start.tm_hour * 3600 + start.tm_min * 60 + start.tm_sec)
     rtime = seconds % total_time
     mouse_pos = mouse.get_pos()
     click = mouse.get_pressed()
@@ -179,58 +216,74 @@ def traffic():
         card[i][j].move(signal_counterv, card[i][j + 1])
 
     if carr[0][0] is None:
-      carr[0].insert(0, Cars(0))
-    if carr[0][0].x < WIDTH - 40 and len(carr[0]) < MAX_CAR[0] and random.randint(0, FLOW[0]) == 0:
-      carr[0].insert(0, Cars(0))
+      carr[0].insert(0, Cars(0, WEATHER[weather], viap))
+    if carr[0][0].x < WIDTH - 40 and len(carr[0]) < MAX_CAR[0] and random.randint(0, FLOW[INTENSITY[0]]) == 0:
+      carr[0].insert(0, Cars(0, WEATHER[weather], viap))
     if carr[0][len(carr[0]) - 2].x < 0:
       carr[0].pop(len(carr[0]) - 2)
 
     if carr[1][0] is None:
-      carr[1].insert(0, Cars(1))
-    if carr[1][0].x < WIDTH - 40 and len(carr[1]) < MAX_CAR[0] and random.randint(0, FLOW[0]) == 0:
-      carr[1].insert(0, Cars(1))
+      carr[1].insert(0, Cars(1, WEATHER[weather], viap))
+    if carr[1][0].x < WIDTH - 40 and len(carr[1]) < MAX_CAR[0] and random.randint(0, FLOW[INTENSITY[0]]) == 0:
+      carr[1].insert(0, Cars(1, WEATHER[weather], viap))
     if carr[1][len(carr[1]) - 2].x < 0:
       carr[1].pop(len(carr[1]) - 2)
 
     if carl[0][0] is None:
-      carl[0].insert(0, Cars(2))
-    if carl[0][0].x > 40 and len(carl[0]) < MAX_CAR[0] and random.randint(0, FLOW[1]) == 0:
-      carl[0].insert(0, Cars(2))
+      carl[0].insert(0, Cars(2, WEATHER[weather], viap))
+    if carl[0][0].x > 40 and len(carl[0]) < MAX_CAR[0] and random.randint(0, FLOW[INTENSITY[flow[0]]]) == 0:
+      carl[0].insert(0, Cars(2, WEATHER[weather], viap))
     if carl[0][len(carl[0]) - 2].x > WIDTH:
       carl[0].pop(len(carl[0]) - 2)
 
     if carl[1][0] is None:
-      carl[1].insert(0, Cars(3))
-    if carl[1][0].x > 40 and len(carl[1]) < MAX_CAR[0] and random.randint(0, FLOW[1]) == 0:
-      carl[1].insert(0, Cars(3))
+      carl[1].insert(0, Cars(3, WEATHER[weather], viap))
+    if carl[1][0].x > 40 and len(carl[1]) < MAX_CAR[0] and random.randint(0, FLOW[INTENSITY[flow[1]]]) == 0:
+      carl[1].insert(0, Cars(3, WEATHER[weather], viap))
     if carl[1][len(carl[1]) - 2].x > WIDTH:
       carl[1].pop(len(carl[1]) - 2)
 
     if caru[0][0] is None:
-      caru[0].insert(0, Cars(4))
-    if caru[0][0].y > 40 and len(caru[0]) < MAX_CAR[1] and random.randint(0, FLOW[2]) == 0:
-      caru[0].insert(0, Cars(4))
+      caru[0].insert(0, Cars(4, WEATHER[weather], vias))
+      timeg[0] = rtime - green_time - yellow_time if timeg[0] == 0 else timeg[0]
+    if caru[0][0].y > 40 and random.randint(0, FLOW[INTENSITY[flow[2]]]) == 0:
+      if len(caru[0]) < MAX_CAR[1]:
+        caru[0].insert(0, Cars(4, WEATHER[weather], vias))
+      else:
+        timer[0] = rtime if timer[0] == 0 else timer[0]
     if caru[0][len(caru[0]) - 2].y > HEIGHT:
       caru[0].pop(len(caru[0]) - 2)
 
     if caru[1][0] is None:
-      caru[1].insert(0, Cars(5))
-    if caru[1][0].y > 40 and len(caru[1]) < MAX_CAR[1] and random.randint(0, FLOW[2]) == 0:
-      caru[1].insert(0, Cars(5))
+      caru[1].insert(0, Cars(5, WEATHER[weather], vias))
+      timeg[1] = rtime - green_time - yellow_time if timeg[1] == 0 else timeg[1]
+    if caru[1][0].y > 40 and random.randint(0, FLOW[INTENSITY[flow[2]]]) == 0:
+      if len(caru[1]) < MAX_CAR[1]:
+        caru[1].insert(0, Cars(5, WEATHER[weather], vias))
+      else:
+        timer[1] = rtime if timer[1] == 0 else timer[1]
     if caru[1][len(caru[1]) - 2].y > HEIGHT:
       caru[1].pop(len(caru[1]) - 2)
 
     if card[0][0] is None:
-      card[0].insert(0, Cars(6))
-    if card[0][0].y < WIDTH - 40 and len(card[0]) < MAX_CAR[1] and random.randint(0, FLOW[3]) == 0:
-      card[0].insert(0, Cars(6))
+      card[0].insert(0, Cars(6, WEATHER[weather], vias))
+      timeg[2] = rtime - green_time - yellow_time if timeg[2] == 0 else timeg[2]
+    if card[0][0].y < WIDTH - 40 and random.randint(0, FLOW[INTENSITY[flow[3]]]) == 0:
+      if len(card[0]) < MAX_CAR[1]:
+        card[0].insert(0, Cars(6, WEATHER[weather], vias))
+      else:
+        timer[2] = rtime if timer[2] == 0 else timer[2]
     if card[0][len(card[0]) - 2].y < 0:
       card[0].pop(len(card[0]) - 2)
 
     if card[1][0] is None:
-      card[1].insert(0, Cars(7))
-    if card[1][0].y < WIDTH - 40 and len(card[1]) < MAX_CAR[1] and random.randint(0, FLOW[3]) == 0:
-      card[1].insert(0, Cars(7))
+      card[1].insert(0, Cars(7, WEATHER[weather], vias))
+      timeg[3] = rtime - green_time - yellow_time if timeg[3] == 0 else timeg[3]
+    if card[1][0].y < WIDTH - 40 and random.randint(0, FLOW[INTENSITY[3]]) == 0:
+      if len(card[1]) < MAX_CAR[1]:
+        card[1].insert(0, Cars(7, WEATHER[weather], vias))
+      else:
+        timer[3] = rtime if timer[3] == 0 else timer[3]
     if card[1][len(card[1]) - 2].y < 0:
       card[1].pop(len(card[1]) - 2)
 
